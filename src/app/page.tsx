@@ -58,7 +58,7 @@ export default function Home() {
 
         // Update status counts
         const counts = statusList.reduce((acc, status) => {
-            acc[status] = ar.filter(item => item.status === status).length;
+            acc[status] = ar.filter((item: any) => item.status === status).length;
             return acc;
         }, {} as Record<string, number>);
         setStatusCounts(counts);
@@ -157,7 +157,7 @@ export default function Home() {
         console.log("Updated statuses:", updatedRows);
     };
 
-    const toggleColumnVisibility = (field: string) => {
+    const toggleColumnVisibility: any = (field: string) => {
         setColDefs((prevColDefs) =>
             prevColDefs.map((col) =>
                 col.field === field ? { ...col, hide: !col.hide } : col
@@ -168,7 +168,7 @@ export default function Home() {
     const onColumnMoved = (params: any) => {
         if (!params.columnApi) return; // ✅ Ensure columnApi exists before calling
 
-        const newColumnOrder = params.columnApi.getAllGridColumns().map(col => ({
+        const newColumnOrder = params.columnApi.getAllGridColumns().map((col: any) => ({
             field: col.getColId()
         }));
         setColDefs(newColumnOrder);
@@ -207,6 +207,7 @@ export default function Home() {
                                 </button>
 
                                 <select 
+                                    title="any"
                                     className="border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-400 transition"
                                     value={newStatus}
                                     onChange={(e) => setNewStatus(e.target.value)}
@@ -277,6 +278,7 @@ export default function Home() {
                             {colDefs.map((col) => (
                                 <div key={col.field} className="flex items-center space-x-2">
                                     <input
+                                        title="any"
                                         type="checkbox"
                                         checked={!col.hide} 
                                         onChange={() => toggleColumnVisibility(col.field)}
