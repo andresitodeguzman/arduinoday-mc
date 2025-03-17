@@ -159,6 +159,8 @@ export default function Home() {
     };
 
     const onColumnMoved = (params: any) => {
+        if (!params.columnApi) return; // ✅ Ensure columnApi exists before calling
+
         const newColumnOrder = params.columnApi.getAllGridColumns().map(col => ({
             field: col.getColId()
         }));
