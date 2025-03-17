@@ -1,36 +1,179 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🚀 Arduinoday MC Dashboard
 
-## Getting Started
+## 📖 Overview
+This project is a **dashboard application** built using:
+- **Next.js** (React Framework)
+- **Firebase Firestore** (Database)
+- **Ag-Grid** (Table Data Management)
+- **Tailwind CSS** (UI Styling)
 
-First, run the development server:
+The dashboard allows **authenticated users** to:
+✅ View and manage records from Firestore  
+✅ Edit and update statuses directly in the grid  
+✅ Commit bulk updates to Firestore  
+✅ Toggle column visibility  
+✅ Handle authentication (login/logout)
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+---
+
+## 📂 Folder Structure
+```
+/src
+ ├── app/
+ │    ├── page.tsx          # Main Dashboard Page (This File)
+ │    ├── (auth)/           # Authentication Pages
+ │    │    ├── login/page.tsx    # Login Page
+ │    │    ├── logout/page.tsx   # Logout Page
+ │    ├── utils/
+ │    │    ├── auth.ts        # Firebase Authentication Logic
+ │    ├── components/
+ │    │    ├── ProcessingView.tsx  # UI Loader Component
+ │    ├── styles/
+ │    ├── public/
+ │
+ ├── firebase.json
+ ├── package.json
+ ├── next.config.js
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🛠️ Technologies Used
+| Tech | Purpose |
+|------|---------|
+| **Next.js** | React framework for SSR & routing |
+| **Firebase Firestore** | Cloud NoSQL database |
+| **Firebase Auth** | User authentication |
+| **Ag-Grid** | Advanced table management |
+| **Tailwind CSS** | Modern styling |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🚀 Features
+### 🔹 Authentication System
+- Uses Firebase Authentication.
+- Redirects unauthenticated users to `/login`.
+- Provides a user profile menu with a logout option.
 
-To learn more about Next.js, take a look at the following resources:
+### 🔹 Data Fetching & Display
+- Fetches records from Firestore `_arduinoday` collection.
+- Displays records in an **Ag-Grid table**.
+- Ensures **status** column is always present.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 🔹 Data Editing & Updates
+- Allows users to **edit the status field** using a dropdown.
+- Stores **pending edits locally** before committing them.
+- Updates Firestore when "Commit Changes" is clicked.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 🔹 Column Customization
+- Users can **toggle column visibility** dynamically.
+- Allows **column reordering** with drag-and-drop.
 
-## Deploy on Vercel
+### 🔹 UI Enhancements
+- **Loading indicator** when fetching data.
+- **Save confirmation message** after committing changes.
+- **Dropdown menu** for user actions.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📜 Code Documentation
+
+### 🔑 Authentication Handling
+```tsx
+useEffect(() => {
+    if (!authStore?.user) {
+        router.push("/login"); // ✅ Redirect to login if not authenticated
+    }
+}, [authStore, router]);
+```
+
+### 🔑 Firestore Data Fetching
+```tsx
+const getItems = async () => {
+    setIsLoading(true);
+    const colRef = collection(db, "_arduinoday");
+
+    const snap = await getDocs(
+        query(colRef, orderBy('dateCreated', 'desc'), limit(5000))
+    );
+
+    const ar: any = snap.docs.map(item => {
+        const data = item.data();
+        if (!data.status) data.status = "PENDING";
+        return { id: item.id, ...data };
+    });
+
+    setItems(ar);
+    setIsLoading(false);
+};
+```
+
+### 🔑 Updating Firestore (Bulk Commit)
+```tsx
+const commitChanges = async () => {
+    setIsLoading(true);
+    const db = getFirestore();
+    const batch = writeBatch(db); 
+
+    Object.values(editedItems).forEach((item: any) => {
+        const docRef = doc(db, "_arduinoday", item.id);
+        batch.update(docRef, { status: item.status }); 
+    });
+
+    try {
+        await batch.commit(); 
+        console.log("Changes successfully saved to Firestore");
+        setEditedItems({}); 
+
+        setShowSaveMessage(true);
+        setTimeout(() => setShowSaveMessage(false), 3000);
+    } catch (error) {
+        console.error("Error committing changes:", error);
+    }
+    setIsLoading(false);
+};
+```
+
+---
+
+## 🔧 Installation
+### 1️⃣ Clone the Repository
+```bash
+git clone https://github.com/yourrepo/arduinoday-mc.git
+cd arduinoday-mc
+npm install
+```
+
+### 2️⃣ Firebase Configuration
+Set up Firebase **Firestore and Authentication** in your `.env.local` file:
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+```
+
+### 3️⃣ Run the Development Server
+```bash
+npm run dev
+```
+Visit [http://localhost:3000](http://localhost:3000) to view the dashboard.
+
+---
+
+## ⚠️ Security Considerations
+- Ensure **Firestore rules** are correctly set to **prevent unauthorized access**.
+- **Sanitize user input** before sending it to Firestore.
+- Use **Firebase Authentication** to restrict access to admin-only actions.
+
+---
+
+## 💡 Future Enhancements
+✅ Add **role-based permissions** (Admin vs. User views).  
+✅ Implement **pagination** for large datasets.  
+✅ Improve **UI/UX with animations & themes**.  
+✅ Add **real-time updates** instead of reloading data manually.  
+
+---
+
+## 📬 Need Help?
+For any issues or contributions, feel free to open a GitHub issue or reach out. 🚀🎯
