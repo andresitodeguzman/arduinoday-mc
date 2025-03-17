@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from "react"; // ✅ Import useEffect
+import { useState, useRef, useEffect, useCallback } from "react"; // ✅ Import useCallback
 import { useAuthStore } from '../utils/auth';
-import Link from 'next/link';
 import Image from "next/image";
-import { getFirestore, collection, getDocs, query, orderBy, limit, startAfter, writeBatch, doc} from "firebase/firestore";
+import { getFirestore, collection, getDocs, query, orderBy, limit, writeBatch, doc} from "firebase/firestore";
 import { AllCommunityModule, ModuleRegistry, ColDef } from 'ag-grid-community'; 
 import { AgGridReact } from 'ag-grid-react';
 import { useRouter } from "next/navigation"; // ✅ Import Next.js Router
@@ -17,7 +16,7 @@ export default function Home() {
     const gridRef = useRef<any>(null); // Create reference for Ag-Grid
     const router = useRouter(); // ✅ Initialize router
 
-    const [items, setItems] = useState(null);
+    const [items, setItems] = useState<Record<string, any>[]>([]); // ✅ More specific type
     const [editedItems, setEditedItems] = useState<Record<string, any>>({});
     const [selectedRows, setSelectedRows] = useState<any[]>([]);
     const [newStatus, setNewStatus] = useState(""); // Holds new status from dropdown
@@ -25,6 +24,7 @@ export default function Home() {
     const [isLoading, setIsLoading] = useState(false); // Add loading state
     const [showSaveMessage, setShowSaveMessage] = useState(false); // ✅ Added save message state
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false); // Added User Actions Dropdown
+    const [statusCounts, setStatusCounts] = useState<Record<string, number>>({}); // Track status counts
 
     const statusList = [
         'PENDING', 'APPROVED', 'REJECTED', 'WAITLIST'
@@ -39,7 +39,7 @@ export default function Home() {
         { field: "email" }
     ]);
 
-    const getItems = async () => {
+    const getItems = useCallback(async () => { // ✅ Wrapped in useCallback
         setIsLoading(true); // Show loader
         const colRef = collection(db, "_arduinoday");
 
@@ -48,13 +48,20 @@ export default function Home() {
         );
 
         const ar: any = [];
-        snap.docs.map(item => {
+        snap.docs.forEach(item => {
             const data = item.data();
             if (!data.status) data.status = "PENDING"; // ✅ Ensure status is always present
             ar.push({ id: item.id, ...data });
         });
 
         setItems(ar);
+
+        // Update status counts
+        const counts = statusList.reduce((acc, status) => {
+            acc[status] = ar.filter(item => item.status === status).length;
+            return acc;
+        }, {} as Record<string, number>);
+        setStatusCounts(counts);
 
         if (ar.length !== 0) {
             const predefinedOrder = ["id", "status", "firstName", "lastName", "email"];
@@ -63,7 +70,7 @@ export default function Home() {
             setColDefs([
                 ...predefinedOrder.map(field => ({
                     field,
-            ...(field === "status"
+                    ...(field === "status"
                         ? { 
                             editable: true,
                             cellEditor: "agSelectCellEditor",
@@ -77,7 +84,7 @@ export default function Home() {
             ]);
         }
         setIsLoading(false); // Hide loader
-    };
+    }, [db]); // ✅ Dependencies now properly handled
 
     useEffect(() => {
         if (!authStore?.user) {
@@ -86,8 +93,8 @@ export default function Home() {
     }, [authStore, router]);
 
     useEffect(() => {
-        getItems(); // ✅ Fetch data when component loads
-    }, []); // ✅ Runs only once when the component mounts
+        getItems(); // ✅ Now stable inside useEffect
+    }, [getItems]); // ✅ Dependency array fixed
 
     const onCellValueChanged = (params: any) => {
         const { id } = params.data;
@@ -178,67 +185,91 @@ export default function Home() {
                 !authStore?.user ?
                 null :
                 <>
-                    <div className="flex flex-wrap items-center justify-between p-4 bg-gray-100 shadow-md rounded-lg mb-6">
-                        <div className="flex items-center gap-4">
-                            <div className="relative">
-                            <button
-                                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                                className="flex items-center space-x-3 bg-gray-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:bg-gray-800 transition w-auto">
-                                <Image 
-                                    src={authStore?.user?.photoURL || "https://picsum.photos/200"} 
-                                    alt="User Profile"
-                                    width={40}
-                                    height={40}
-                                    className="w-10 h-10 rounded-full object-cover bg-gray-300"
-                                />
-                                {/* <span className="truncate max-w-[100px]">{authStore?.user?.displayName || "User"}</span> */}
-                            </button>
+                    <div className="flex flex-col gap-4 p-4 bg-gray-100 shadow-md rounded-lg mb-6">
+                        {/* Status Counters */}
+                        <div className="flex flex-wrap gap-4">
+                            {statusList.map((status) => (
+                                <div key={status} className="bg-white p-3 rounded-lg shadow-md flex items-center">
+                                    <span className="text-gray-700 font-semibold">{status}:</span>
+                                    <span className="ml-2 text-blue-600 font-bold">{statusCounts[status] || 0}</span>
+                                </div>
+                            ))}
+                        </div>
 
-                                {isUserMenuOpen && (
-                                <div className="absolute top-full left-2 mt-2 min-w-[150px] bg-white border rounded-lg shadow-lg z-50">
-                                        <button 
-                                            onClick={() => router.push("/logout")}  // ✅ Redirect to logout page
-                                            className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-t-lg">
-                                            Logout
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap justify-between items-center">
+                            <div className="flex items-center gap-4">
+                                <button 
+                                    onClick={commitChanges} 
+                                    disabled={Object.keys(editedItems).length === 0 || isLoading} 
+                                    className="bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg shadow-md disabled:bg-gray-300 hover:bg-blue-700 transition">
+                                    Commit Changes
+                                </button>
+
+                                <select 
+                                    className="border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-400 transition"
+                                    value={newStatus}
+                                    onChange={(e) => setNewStatus(e.target.value)}
+                                    disabled={isLoading} 
+                                >
+                                    <option value="">Select New Status</option>
+                                    {statusList.map(status => (
+                                        <option key={status} value={status}>{status}</option>
+                                    ))}
+                                </select>
+
+                                <button 
+                                    onClick={updateSelectedStatuses} 
+                                    disabled={selectedRows.length === 0 || !newStatus || isLoading} 
+                                    className="bg-green-500 text-white font-semibold px-6 py-3 rounded-lg shadow-md disabled:bg-gray-300 hover:bg-green-600 transition">
+                                    Update Status
+                                </button>
+                            </div>
+
+                            <div>
+                                {/* Toggle Columns Button */}
+                                <button 
+                                    onClick={() => setIsColumnToggleOpen(!isColumnToggleOpen)}
+                                    className="bg-gray-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:bg-gray-800 transition"
+                                    disabled={isLoading} 
+                                >
+                                    {isColumnToggleOpen ? "Hide Column Toggles ▲" : "Show Column Toggles ▼"}
+                                </button>
+                            </div>
+
+                            {/* ✅ Restored User Menu */}
+                            <div>
+                                {authStore?.user && (
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                                            className="flex items-center space-x-3 bg-gray-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:bg-gray-800 transition">
+                                            <Image 
+                                                src={authStore?.user?.photoURL || "https://picsum.photos/200"} 
+                                                alt="User Profile"
+                                                width={40} 
+                                                height={40} 
+                                                className="w-8 h-8 rounded-full"
+                                            />
+                                            <span>{authStore?.user?.displayName || "User"}</span>
                                         </button>
+
+                                        {isUserMenuOpen && (
+                                            <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg">
+                                                <button 
+                                                    onClick={() => router.push("/logout")} 
+                                                    className="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-t-lg">
+                                                    Logout
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
-
-                            <button 
-                                onClick={commitChanges} 
-                                disabled={Object.keys(editedItems).length === 0 || isLoading} 
-                                className="bg-blue-600 text-white font-semibold px-6 py-3 rounded-lg shadow-md disabled:bg-gray-300 hover:bg-blue-700 transition">
-                                Commit Changes
-                            </button>
-
-                            <select 
-                                className="border border-gray-300 px-4 py-2 rounded-lg focus:ring-2 focus:ring-blue-400 transition"
-                                value={newStatus}
-                                onChange={(e) => setNewStatus(e.target.value)}
-                                disabled={isLoading} 
-                            >
-                                <option value="">Select New Status</option>
-                                {statusList.map(status => (
-                                    <option key={status} value={status}>{status}</option>
-                                ))}
-                            </select>
-
-                            <button 
-                                onClick={updateSelectedStatuses} 
-                                disabled={selectedRows.length === 0 || !newStatus || isLoading} 
-                                className="bg-green-500 text-white font-semibold px-6 py-3 rounded-lg shadow-md disabled:bg-gray-300 hover:bg-green-600 transition">
-                                Update Status
-                            </button>
+                            
                         </div>
 
-                        <button 
-                            onClick={() => setIsColumnToggleOpen(!isColumnToggleOpen)}
-                            className="bg-gray-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md hover:bg-gray-800 transition"
-                            disabled={isLoading} 
-                        >
-                            {isColumnToggleOpen ? "Hide Column Toggles ▲" : "Show Column Toggles ▼"}
-                        </button>
+                        
                     </div>
 
                     {isColumnToggleOpen && (
@@ -268,7 +299,7 @@ export default function Home() {
                         <AgGridReact
                             ref={gridRef}
                             onGridReady={(params) => {
-                            gridRef.current = params.api ? { api: params.api } : null;
+                                gridRef.current = params.api ? { api: params.api } : null;
                             }}
                             onColumnMoved={onColumnMoved} // ✅ Track column movement
                             onCellValueChanged={onCellValueChanged}
