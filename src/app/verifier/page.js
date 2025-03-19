@@ -23,6 +23,7 @@ export default function VerifierPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [stream, setStream] = useState(null);
     const [isCameraActive, setIsCameraActive] = useState(false);
+    const [showCelebration, setShowCelebration] = useState(false);
     
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -155,12 +156,17 @@ export default function VerifierPage() {
                 attendedAt: timestamp,
             });
 
-            setStatusMessage(`✅ ${userDetails?.firstName || "User"} ${userDetails?.lastName || ""} has been marked as ATTENDED.`);
-
+            setStatusMessage(`🎉 ${userDetails?.firstName || "User"} ${userDetails?.lastName || ""} has been marked as ATTENDED! 🎊`);
+            
             setUserDetails((prevDetails) => ({
                 ...prevDetails,
                 attendedAt: new Date(timestamp.toDate()).toLocaleString(),
             }));
+
+            // ✅ Trigger Celebration Effect
+            setShowCelebration(true);
+            setTimeout(() => setShowCelebration(false), 3000); // Hide confetti after 3s
+
         } catch (error) {
             console.error("Error updating attendance:", error);
             alert("Error updating attendance. Please try again.");
@@ -196,6 +202,20 @@ export default function VerifierPage() {
                 <p className={`mt-4 text-lg font-semibold text-center ${statusMessage.includes('⚠️') ? 'text-yellow-500' : 'text-green-600'}`}>
                     {statusMessage}
                 </p>
+            )}
+
+            {showCelebration && (
+                <div className="fixed inset-0 flex items-center justify-center bg-transparent">
+                    <div className="absolute w-full h-full pointer-events-none">
+                        <p className="text-4xl font-bold text-green-600 text-center mt-20 animate-bounce">
+                            🎉 Attendance Confirmed! 🎊
+                        </p>
+                        <div className="absolute inset-0 overflow-hidden">
+                            {/* Confetti Effect */}
+                            <div className="animate-confetti w-full h-full"></div>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {showModal && (
