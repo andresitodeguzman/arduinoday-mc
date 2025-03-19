@@ -34,6 +34,7 @@ export default function VerifierPage() {
         });
 
         return () => {
+            unsubscribe(); // ✅ Properly unsubscribe from auth state listener
             if (stream) {
                 stream.getTracks().forEach((track) => track.stop());
                 setIsCameraActive(false);
@@ -45,10 +46,14 @@ export default function VerifierPage() {
         try {
             if (isCameraActive || videoRef.current?.srcObject) return; // ✅ Prevent reloading
 
-            const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            const mediaStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "environment" } // Try back camera first
+            });
 
             if (videoRef.current) {
                 videoRef.current.srcObject = mediaStream;
+                videoRef.current.muted = true; // ✅ Ensure autoplay on iOS
+                videoRef.current.setAttribute("playsinline", ""); // ✅ Prevent fullscreen mode on iOS
                 videoRef.current.onloadedmetadata = () => {
                     videoRef.current.play().catch(error => console.warn("Video play interrupted:", error));
                 };
@@ -167,7 +172,7 @@ export default function VerifierPage() {
 
             <canvas ref={canvasRef} className="hidden" />
 
-            {isLoading && (
+            {isLoading && scannedID && (
                 <p className="mt-4 text-lg font-semibold text-center text-blue-500">Fetching data...</p>
             )}
 
