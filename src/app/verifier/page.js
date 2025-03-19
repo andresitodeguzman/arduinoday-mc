@@ -33,13 +33,19 @@ export default function VerifierPage() {
             }
         });
 
-        return () => {
-            unsubscribe(); // ✅ Properly unsubscribe from auth state listener
-            if (stream) {
-                stream.getTracks().forEach((track) => track.stop());
-                setIsCameraActive(false);
-            }
-        };
+    return () => {
+        unsubscribe(); // ✅ Unsubscribe from Firebase auth listener
+
+        if (videoRef.current) {
+            videoRef.current.srcObject = null; // ✅ Reset video element
+        }
+
+        if (stream) {
+            stream.getTracks().forEach((track) => track.stop()); // ✅ Properly stop all camera tracks
+            setStream(null);
+            setIsCameraActive(false);
+        }
+    };
     }, []);
 
     const startCamera = async () => {
@@ -168,7 +174,13 @@ export default function VerifierPage() {
         <div className="flex flex-col items-center justify-center h-screen bg-gray-100 px-4">
             {/* Removed <h1> title to optimize screen space */}
 
-            <video ref={videoRef} className="w-full h-full object-cover mb-4 rounded-lg shadow-lg" />
+            <video
+                ref={videoRef}
+                className="w-full h-full object-cover mb-4 rounded-lg shadow-lg"
+                autoPlay
+                playsInline
+                muted
+            />
 
             <canvas ref={canvasRef} className="hidden" />
 
