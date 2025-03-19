@@ -28,7 +28,7 @@ export default function HomePage() {
 
     return (
         <div className="flex flex-col items-center justify-center h-screen bg-gray-100 px-6">
-            <h1 className="text-2xl font-bold mb-6">Welcome to<br />Arduino Day Mission Control</h1>
+            <h1 className="text-2xl font-bold mb-6 text-center">Welcome to<br />Arduino Day Mission Control</h1>
 
             {/* Navigation Icons */}
             <div className="grid grid-cols-2 gap-6">
