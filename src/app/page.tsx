@@ -157,6 +157,36 @@ export default function Home() {
         console.log("Updated statuses:", updatedRows);
     };
 
+    const exportApprovedToCSV = () => {
+        const approvedUsers = items.filter(item => item.status === "APPROVED");
+
+        if (approvedUsers.length === 0) {
+            alert("No approved users to export.");
+            return;
+        }
+
+        const csvHeader = ["ID", "First Name", "Last Name", "Email", "Status"];
+        const csvRows = approvedUsers.map(user => [
+            user.id,
+            user.firstName || "",
+            user.lastName || "",
+            user.email || "",
+            user.status
+        ]);
+
+        const csvContent = [csvHeader, ...csvRows].map(row => row.join(",")).join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "approved_users.csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
     const toggleColumnVisibility: any = (field: string) => {
         setColDefs((prevColDefs) =>
             prevColDefs.map((col) =>
@@ -224,6 +254,12 @@ export default function Home() {
                                     disabled={selectedRows.length === 0 || !newStatus || isLoading} 
                                     className="bg-green-500 text-white font-semibold px-6 py-3 rounded-lg shadow-md disabled:bg-gray-300 hover:bg-green-600 transition">
                                     Update Status
+                                </button>
+                                <button 
+                                    onClick={exportApprovedToCSV}
+                                    className="bg-purple-600 text-white font-semibold px-6 py-3 rounded-lg shadow-md hover:bg-purple-700 transition"
+                                >
+                                    Export Approved Users (CSV)
                                 </button>
                             </div>
 
