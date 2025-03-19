@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from "react"; // ✅ Import useCallback
-import { useAuthStore } from '../utils/auth';
+import { useAuthStore } from '../../utils/auth';
 import Image from "next/image";
 import { getFirestore, collection, getDocs, query, orderBy, limit, writeBatch, doc} from "firebase/firestore";
 import { AllCommunityModule, ModuleRegistry, ColDef } from 'ag-grid-community'; 
