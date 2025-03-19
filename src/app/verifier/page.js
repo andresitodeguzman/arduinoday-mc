@@ -21,6 +21,8 @@ export default function VerifierPage() {
     const [userDetails, setUserDetails] = useState(null);
     const [isUpdating, setIsUpdating] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [stream, setStream] = useState(null);
+    const [isCameraActive, setIsCameraActive] = useState(false);
     
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -31,15 +33,27 @@ export default function VerifierPage() {
             }
         });
 
-        return () => unsubscribe();
+        return () => {
+            if (stream) {
+                stream.getTracks().forEach((track) => track.stop());
+                setIsCameraActive(false);
+            }
+        };
     }, []);
 
     const startCamera = async () => {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            if (isCameraActive || videoRef.current?.srcObject) return; // ✅ Prevent reloading
+
+            const mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+
             if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-                videoRef.current.play();
+                videoRef.current.srcObject = mediaStream;
+                videoRef.current.onloadedmetadata = () => {
+                    videoRef.current.play().catch(error => console.warn("Video play interrupted:", error));
+                };
+                setStream(mediaStream);
+                setIsCameraActive(true);
                 scanQRCode();
             }
         } catch (error) {
