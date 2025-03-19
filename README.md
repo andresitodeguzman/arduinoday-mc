@@ -76,6 +76,42 @@ The dashboard allows **authenticated users** to:
 
 ---
 
+## 🔹 Recent Updates
+
+### Verifier & Registration Pages
+- The homepage includes navigation buttons to the **Verifier** and **Registration** pages.
+- The **Verifier page** allows volunteers to **scan QR codes to check approval status** and mark attendance.
+- The **Registration page** allows users to register and store details in Firestore.
+
+### Live QR Code Scanner
+- Uses `jsQR` to **scan QR codes from a live camera feed**.
+- Automatically **fetches user details from Firestore** upon scanning.
+- Displays a **modal with user details before marking attendance**.
+- **Prevents double approval** if a user is already marked as attended.
+
+### Improved User Feedback
+- **Loading indicators** added when:
+  - Fetching user data from Firestore.
+  - Updating status and marking attendance.
+- **Error alerts** reintroduced to notify users of failures.
+- Ensures UI remains responsive and intuitive.
+
+### Attendance Tracking with Timestamps
+- A **timestamp (`attendedAt`) is stored in Firestore** when marking a user as attended.
+- The **modal displays the timestamp** after updating attendance.
+- Allows organizers to **track exact check-in times**.
+
+### Authentication & Logout
+- Users **must be logged in** to access any pages.
+- **Redirects to `/login` if unauthenticated**.
+- **Logout redirects to `/logout`** for better session handling.
+
+### UI/UX Enhancements
+- **Larger video preview** in the Verifier page for better visibility.
+- **Bigger buttons in modals** for easier interactions.
+- **Mobile-friendly design** with **icons for navigation**.
+- **"Made w/ ❤️ by ChatGPT" footer added**.
+
 ## 📜 Code Documentation
 
 ### 🔑 Authentication Handling
